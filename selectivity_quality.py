@@ -38,6 +38,29 @@ def usage():
     return help_text
 
 
+def parse_query_args(query_args):
+    '''
+    Get the queries in the files and directories specified in quer_args
+    '''
+    queries = []
+
+    for query_arg in query_args:
+        # if the argument is a directory, get sql files in it
+        if os.path.isdir(query_arg):
+            query_args += glob.glob(os.path.join(query_arg, '*.sql'))
+        # if the argument is a file, read its content and add it to the
+        # queries
+        elif os.path.isfile(query_arg):
+            with open(query_arg) as query_file:
+                queries.append(query_file.read())
+        # if the argument is neither a file nor a directory, raise an
+        # exception
+        else:
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), query_arg)
+
+    return queries
+
+
 if __name__ == '__main__':
     try:
         # first argument is postgresql's connection string
@@ -45,22 +68,7 @@ if __name__ == '__main__':
 
         # all other arguments are files containing single queries or directories
         # containing those files
-        queries = []
-        query_args = sys.argv[2:]
-        for query_arg in query_args:
-            # if the argument is a directory, get sql files in it
-            if os.path.isdir(query_arg):
-                query_args += glob.glob(os.path.join(query_arg, '*.sql'))
-            # if the argument is a file, read its content and add it to the
-            # queries
-            elif os.path.isfile(query_arg):
-                with open(query_arg) as query_file:
-                    queries.append(query_file.read())
-            # if the argument is neither a file nor a directory, raise an
-            # exception
-            else:
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
-
+        queries = parse_query_args(sys.argv[2:])
         print(queries)
 
     # if we don't have the correct amount of arguments, print the help text
