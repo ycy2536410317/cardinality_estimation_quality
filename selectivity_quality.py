@@ -42,6 +42,25 @@ class Postgres():
         return cursor.fetchall()
 
 
+class QueryResult():
+    filename = None
+    query = None
+    query_plan = None
+
+    def __init__(self, filename):
+        self.filename = filename
+        with open(filename) as f:
+            self.query = f.read()
+
+
+    def explain(self, db):
+        '''
+        EXPLAIN the query in the given database  to populate the execution stats fields
+        '''
+        result = db.explain(self.query)[0][0][0]
+        self.query_plan = result['Plan']
+
+
 def usage():
     help_text = '''Usage:
     {0} CONNECTION_STRING QUERIES
@@ -73,8 +92,7 @@ def parse_query_args(query_args):
         # if the argument is a file, read its content and add it to the
         # queries
         elif os.path.isfile(query_arg):
-            with open(query_arg) as query_file:
-                queries.append(query_file.read())
+            queries.append(QueryResult(query_arg))
         # if the argument is neither a file nor a directory, raise an
         # exception
         else:
@@ -90,8 +108,7 @@ def execute_queries(pg_url, queries):
     '''
     db = Postgres(pg_url)
     for query in queries:
-        result = db.explain(query)[0][0][0]
-        print(json.dumps(result, indent=4))
+        query.explain(db)
 
 
 if __name__ == '__main__':
