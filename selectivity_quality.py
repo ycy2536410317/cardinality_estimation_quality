@@ -46,6 +46,8 @@ class QueryResult():
     filename = None
     query = None
     query_plan = None
+    planning_time = None
+    execution_time = None
 
     def __init__(self, filename):
         self.filename = filename
@@ -59,6 +61,8 @@ class QueryResult():
         '''
         result = db.explain(self.query)[0][0][0]
         self.query_plan = result['Plan']
+        self.planning_time = result['Planning Time']
+        self.execution_time = result['Execution Time']
 
 
 def usage():
