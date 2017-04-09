@@ -8,7 +8,10 @@ predicates.
 
 import errno
 import glob
+import json
 import os
+import psycopg2
+import psycopg2.extras
 import sys
 
 
@@ -18,6 +21,25 @@ class Postgres():
 
     def __init__(self, pg_url):
         self._connection = psycopg2.connect(pg_url)
+
+    def execute(self, query):
+        '''
+        Execute the query and return all the results at once
+        '''
+        cursor = self._connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute(query)
+        return cursor.fetchall()
+
+    def explain(self, query):
+        '''
+        Execute an 'EXPLAIN ANALYZE' of the query
+        '''
+        if not query.lower().startswith('explain'):
+            query = 'EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON) ' + query
+
+        cursor = self._connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute(query)
+        return cursor.fetchall()
 
 
 def usage():
@@ -61,6 +83,17 @@ def parse_query_args(query_args):
     return queries
 
 
+def execute_queries(pg_url, queries):
+    '''
+    Execute an EXPLAIN ANALYZE of each query and parse the output to get the
+    relevant execution information
+    '''
+    db = Postgres(pg_url)
+    for query in queries:
+        result = db.explain(query)[0][0][0]
+        print(json.dumps(result, indent=4))
+
+
 if __name__ == '__main__':
     try:
         # first argument is postgresql's connection string
@@ -69,7 +102,9 @@ if __name__ == '__main__':
         # all other arguments are files containing single queries or directories
         # containing those files
         queries = parse_query_args(sys.argv[2:])
-        print(queries)
+
+        # execute the queries and collect the execution stats
+        execute_queries(pg_url, queries)
 
     # if we don't have the correct amount of arguments, print the help text
     except(IndexError):
