@@ -13,6 +13,7 @@ import os
 import psycopg2
 import psycopg2.extras
 import sys
+from collections import namedtuple
 
 
 class Postgres():
@@ -44,10 +45,16 @@ class Postgres():
 
 class QueryResult():
     filename = None
-    query = None
-    query_plan = None
-    planning_time = None
-    execution_time = None
+    query = None # sql
+    query_plan = None # json representing the plan
+    planning_time = None # in milliseconds
+    execution_time = None # in milliseconds
+    total_cost = None
+
+    # define a type representing the estimated and actual cardinalities of a
+    # predicate
+    Cardinality = namedtuple('Cardinality', 'join_level estimated actual')
+    cardinalities = [] # list of Cardinality
 
     def __init__(self, filename):
         self.filename = filename
@@ -57,12 +64,40 @@ class QueryResult():
 
     def explain(self, db):
         '''
-        EXPLAIN the query in the given database  to populate the execution stats fields
+        EXPLAIN the query in the given database to populate the execution stats fields
         '''
         result = db.explain(self.query)[0][0][0]
         self.query_plan = result['Plan']
         self.planning_time = result['Planning Time']
         self.execution_time = result['Execution Time']
+        self.total_cost = result['Plan']['Total Cost']
+        self.cardinalities = self._parse_cardinalities()
+
+
+    def _parse_cardinalities(self, query_plan=None):
+        '''
+        Read the query plan and return the list of cardinalities
+        If query_plan is None, use self.query_plan. The argument is used for recursion
+        '''
+        if query_plan is None:
+            query_plan = self.query_plan
+
+        cardinalities = []
+
+        # parent nodes
+        try:
+            subplan_cardinalities = []
+            for subplan in query_plan['Plans']:
+                subplan_cardinalities += self._parse_cardinalities(subplan)
+
+            max_join_level = max([card.join_level for card in subplan_cardinalities])
+            cardinalities += subplan_cardinalities
+            cardinalities.append(self.Cardinality(max_join_level+1, query_plan['Plan Rows'], query_plan['Actual Rows']))
+        # leaf nodes
+        except KeyError as e:
+            cardinalities.append(self.Cardinality(0, query_plan['Plan Rows'], query_plan['Actual Rows']))
+
+        return cardinalities
 
 
 def usage():
@@ -85,7 +120,7 @@ def usage():
 
 def parse_query_args(query_args):
     '''
-    Get the queries in the files and directories specified in quer_args
+    Get the queries in the files and directories specified in query_args
     '''
     queries = []
 
