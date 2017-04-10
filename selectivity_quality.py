@@ -104,9 +104,9 @@ def usage():
     help_text = '''Usage:
     {0} CONNECTION_STRING QUERIES
 
-    CONNECTION_STRING must be a psycopg2-valid connection string, between
+    CONNECTION_STRING must be a libpq-valid connection string, between
     quotes.
-    See https://www.postgresql.org/docs/current/static/app-psql.html#R2-APP-PSQL-CONNECTING
+    See https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 
     QUERIES must be a list of files or directories. Files must contain one and
     only one query; directories must contain .sql files containing one and only
