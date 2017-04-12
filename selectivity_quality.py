@@ -9,10 +9,12 @@ predicates.
 import errno
 import glob
 import json
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import psycopg2
 import psycopg2.extras
+import seaborn
 import sys
 from collections import namedtuple
 
@@ -159,6 +161,36 @@ def execute_queries(pg_url, queries):
         query.explain(db)
 
 
+def visualize(queries):
+    '''
+    Generate all interesting graphs from the set of queries
+    '''
+    plot_q_error_vs_join_level(queries)
+
+
+def q_error(estimated, actual):
+    '''
+    Compute the q-error for the given selectivities
+    Return the negative q-error if it's an underestimation, positive for
+    overestimation
+    '''
+    # overestimation
+    if estimated > actual:
+        return estimated / actual
+    # underestimation
+    else:
+        return actual / estimated * -1
+
+
+def plot_q_error_vs_join_level(queries):
+    # concatenate single queries cardinalities stats
+    cardinalities = pd.concat([query.cardinalities for query in queries])
+    # compute the q-errors and store them in the dataframe
+    cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
+    plot = seaborn.lmplot('join_level', 'q_error', data=cardinalities)
+    plot.savefig('output.png')
+
+
 if __name__ == '__main__':
     try:
         # first argument is postgresql's connection string
@@ -168,9 +200,12 @@ if __name__ == '__main__':
         # containing those files
         queries = parse_query_args(sys.argv[2:])
 
-        # execute the queries and collect the execution stats
-        execute_queries(pg_url, queries)
-
     # if we don't have the correct amount of arguments, print the help text
-    except(IndexError):
+    except(IndexError) as e:
         print(usage())
+
+    # execute the queries and collect the execution stats
+    execute_queries(pg_url, queries)
+
+    # generate all the relevant graphs
+    visualize(queries)
