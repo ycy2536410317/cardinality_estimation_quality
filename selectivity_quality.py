@@ -166,14 +166,15 @@ def visualize(queries):
     '''
     Generate all interesting graphs from the set of queries
     '''
-    plots = []
-    plots.append(plot_q_error_vs_join_level(queries))
-    plots.append(plot_q_error_vs_join_level(queries))
-    plots.append(plot_q_error_vs_join_level(queries))
+    plot_functions = [
+        plot_q_error_vs_join_level,
+        plot_q_error_vs_query,
+    ]
 
     with PdfPages('output.pdf') as pdf:
-        for plot in plots:
-            pdf.savefig(plot.fig)
+        for plot_function in plot_functions:
+            pdf.savefig(plot_function(queries).figure)
+            plt.clf()
 
 
 def q_error(estimated, actual):
@@ -192,10 +193,29 @@ def q_error(estimated, actual):
 
 def plot_q_error_vs_join_level(queries):
     # concatenate single queries cardinalities stats
-    cardinalities = pd.concat([query.cardinalities for query in queries])
+    cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
     # compute the q-errors and store them in the dataframe
     cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
-    return seaborn.lmplot('join_level', 'q_error', data=cardinalities)
+
+    return seaborn.stripplot('join_level', 'q_error', data=cardinalities)
+
+
+def plot_q_error_vs_query(queries):
+    # concatenate single queries cardinalities stats
+    cardinalities = pd.concat([query.cardinalities.assign(filename=query.filename) for query in queries], ignore_index=True)
+    # compute the q-errors and store them in the dataframe
+    cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
+
+    return seaborn.stripplot(
+        y='filename',
+        x='q_error',
+        data=cardinalities,
+        hue='join_level',
+        palette=seaborn.color_palette('Blues')
+    )
+
+
+
 
 
 if __name__ == '__main__':
