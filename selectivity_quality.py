@@ -16,7 +16,8 @@ import psycopg2
 import psycopg2.extras
 import seaborn
 import sys
-from collections import namedtuple
+
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 class Postgres():
@@ -165,7 +166,14 @@ def visualize(queries):
     '''
     Generate all interesting graphs from the set of queries
     '''
-    plot_q_error_vs_join_level(queries)
+    plots = []
+    plots.append(plot_q_error_vs_join_level(queries))
+    plots.append(plot_q_error_vs_join_level(queries))
+    plots.append(plot_q_error_vs_join_level(queries))
+
+    with PdfPages('output.pdf') as pdf:
+        for plot in plots:
+            pdf.savefig(plot.fig)
 
 
 def q_error(estimated, actual):
@@ -187,8 +195,7 @@ def plot_q_error_vs_join_level(queries):
     cardinalities = pd.concat([query.cardinalities for query in queries])
     # compute the q-errors and store them in the dataframe
     cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
-    plot = seaborn.lmplot('join_level', 'q_error', data=cardinalities)
-    plot.savefig('output.png')
+    return seaborn.lmplot('join_level', 'q_error', data=cardinalities)
 
 
 if __name__ == '__main__':
