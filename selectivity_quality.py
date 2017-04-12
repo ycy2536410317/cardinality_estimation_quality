@@ -216,9 +216,6 @@ def plot_q_error_vs_query(queries):
     )
 
 
-
-
-
 if __name__ == '__main__':
     try:
         # first argument is postgresql's connection string
