@@ -159,6 +159,7 @@ def execute_queries(pg_url, queries):
     '''
     db = Postgres(pg_url)
     for query in queries:
+        print('Executing query ' + query.filename + '...')
         query.explain(db)
 
 
