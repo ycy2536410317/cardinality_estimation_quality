@@ -10,6 +10,7 @@ import errno
 import glob
 import json
 import os
+import pandas as pd
 import psycopg2
 import psycopg2.extras
 import sys
@@ -50,11 +51,8 @@ class QueryResult():
     planning_time = None # in milliseconds
     execution_time = None # in milliseconds
     total_cost = None
-
-    # define a type representing the estimated and actual cardinalities of a
-    # predicate
-    Cardinality = namedtuple('Cardinality', 'join_level estimated actual')
-    cardinalities = [] # list of Cardinality
+    # dataframe containing the join level and estimated and actual cardinalities
+    cardinalities = None
 
     def __init__(self, filename):
         self.filename = filename
@@ -71,7 +69,7 @@ class QueryResult():
         self.planning_time = result['Planning Time']
         self.execution_time = result['Execution Time']
         self.total_cost = result['Plan']['Total Cost']
-        self.cardinalities = self._parse_cardinalities()
+        self.cardinalities = pd.DataFrame(self._parse_cardinalities())
 
 
     def _parse_cardinalities(self, query_plan=None):
@@ -82,20 +80,31 @@ class QueryResult():
         if query_plan is None:
             query_plan = self.query_plan
 
-        cardinalities = []
+        cardinalities = {
+            'join_level': [],
+            'estimated': [],
+            'actual': []
+        }
 
         # parent nodes
         try:
-            subplan_cardinalities = []
             for subplan in query_plan['Plans']:
-                subplan_cardinalities += self._parse_cardinalities(subplan)
+                subplan_cardinalities = {}
+                subplan_cardinalities = self._parse_cardinalities(subplan)
+                cardinalities['join_level'] += subplan_cardinalities['join_level']
+                cardinalities['estimated'] += subplan_cardinalities['estimated']
+                cardinalities['actual'] += subplan_cardinalities['actual']
 
-            max_join_level = max([card.join_level for card in subplan_cardinalities])
-            cardinalities += subplan_cardinalities
-            cardinalities.append(self.Cardinality(max_join_level+1, query_plan['Plan Rows'], query_plan['Actual Rows']))
+            max_join_level = max(cardinalities['join_level'])
+
+            cardinalities['join_level'].append(max_join_level + 1)
+            cardinalities['estimated'].append(query_plan['Plan Rows'])
+            cardinalities['actual'].append(query_plan['Actual Rows'])
         # leaf nodes
         except KeyError as e:
-            cardinalities.append(self.Cardinality(0, query_plan['Plan Rows'], query_plan['Actual Rows']))
+            cardinalities['join_level'].append(0)
+            cardinalities['estimated'].append(query_plan['Plan Rows'])
+            cardinalities['actual'].append(query_plan['Actual Rows'])
 
         return cardinalities
 
