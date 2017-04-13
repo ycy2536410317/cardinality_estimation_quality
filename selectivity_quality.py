@@ -191,6 +191,7 @@ def q_error(estimated, actual):
     '''
     # overestimation
     if estimated > actual:
+        actual = max(actual, 1) # prevent division by zero
         return estimated / actual
     # underestimation
     else:
