@@ -158,8 +158,8 @@ def execute_queries(pg_url, queries):
     relevant execution information
     '''
     db = Postgres(pg_url)
-    for query in queries:
-        print('Executing query ' + query.filename + '...')
+    for i, query in enumerate(queries):
+        print('Executing query ' + query.filename + '... (' + str(i+1) + '/' + str(len(queries)) + ')')
         query.explain(db)
 
 
