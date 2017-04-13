@@ -187,6 +187,7 @@ def visualize(queries):
         plot_q_error_vs_join_level,
         plot_q_error_vs_query,
         plot_execution_time_vs_total_cost,
+        plot_actual_vs_estimated,
     ]
 
     with PdfPages(GRAPHS_FILE) as pdf:
@@ -247,6 +248,14 @@ def plot_execution_time_vs_total_cost(queries):
     data = pd.DataFrame(data)
 
     return seaborn.lmplot('total_cost', 'execution_time', data)
+
+
+def plot_actual_vs_estimated(queries):
+    # concatenate single queries cardinalities stats
+    cardinalities = pd.concat([query.cardinalities.assign(filename=query.filename) for query in queries], ignore_index=True)
+
+    return seaborn.lmplot('estimated', 'actual', data=cardinalities)
+
 
 
 if __name__ == '__main__':
