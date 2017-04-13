@@ -173,7 +173,7 @@ def visualize(queries):
         plot_execution_time_vs_total_cost,
     ]
 
-    with PdfPages('output.pdf') as pdf:
+    with PdfPages('ouput/output.pdf') as pdf:
         for plot_function in plot_functions:
             plot = plot_function(queries)
             try:
