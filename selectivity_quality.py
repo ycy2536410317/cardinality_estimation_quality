@@ -170,11 +170,16 @@ def visualize(queries):
     plot_functions = [
         plot_q_error_vs_join_level,
         plot_q_error_vs_query,
+        plot_execution_time_vs_total_cost,
     ]
 
     with PdfPages('output.pdf') as pdf:
         for plot_function in plot_functions:
-            pdf.savefig(plot_function(queries).figure)
+            plot = plot_function(queries)
+            try:
+                pdf.savefig(plot.figure)
+            except(AttributeError):
+                pdf.savefig(plot.fig)
             plt.clf()
 
 
@@ -215,6 +220,16 @@ def plot_q_error_vs_query(queries):
         hue='join_level',
         palette=seaborn.color_palette('Blues')
     )
+
+
+def plot_execution_time_vs_total_cost(queries):
+    data = {
+        'execution_time': [query.execution_time for query in queries],
+        'total_cost': [query.total_cost for query in queries]
+    }
+    data = pd.DataFrame(data)
+
+    return seaborn.lmplot('total_cost', 'execution_time', data)
 
 
 if __name__ == '__main__':
