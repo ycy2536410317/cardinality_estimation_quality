@@ -12,12 +12,17 @@ import json
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
+import pickle
 import psycopg2
 import psycopg2.extras
 import seaborn
 import sys
 
 from matplotlib.backends.backend_pdf import PdfPages
+
+
+QUERY_RESULTS_FILE = os.path.join(os.path.dirname(__file__), 'output', 'query_results.pkl')
+GRAPHS_FILE = os.path.join(os.path.dirname(__file__), 'output', 'output.pdf')
 
 
 class Postgres():
@@ -115,6 +120,7 @@ class QueryResult():
 def usage():
     help_text = '''Usage:
     {0} CONNECTION_STRING QUERIES
+    {0} QUERY_RESULTS_FILE
 
     CONNECTION_STRING must be a libpq-valid connection string, between
     quotes.
@@ -124,9 +130,16 @@ def usage():
     only one query; directories must contain .sql files containing one and only
     one query.
 
+    If the queries have been executed before, their result has been stored in
+    the file {1}. It is possible to re-use the results instead of re-executing
+    all the queries by supplying the filename as argument.
+
+    The resulting graphs are saved in {2}.
+
     Example:
     {0} 'host=localhost port=5432 user=postgres dbname=postgres' q1.sql q2.sql queries/
-    '''.format(sys.argv[0])
+    {0} {1}
+    '''.format(sys.argv[0], QUERY_RESULTS_FILE, GRAPHS_FILE)
     return help_text
 
 
@@ -162,6 +175,9 @@ def execute_queries(pg_url, queries):
         print('Executing query ' + query.filename + '... (' + str(i+1) + '/' + str(len(queries)) + ')')
         query.explain(db)
 
+    # save the results to re-use them later
+    pickle.dump(queries, open(QUERY_RESULTS_FILE, 'wb'))
+
 
 def visualize(queries):
     '''
@@ -173,7 +189,7 @@ def visualize(queries):
         plot_execution_time_vs_total_cost,
     ]
 
-    with PdfPages('ouput/output.pdf') as pdf:
+    with PdfPages(GRAPHS_FILE) as pdf:
         for plot_function in plot_functions:
             plot = plot_function(queries)
             try:
@@ -234,20 +250,31 @@ def plot_execution_time_vs_total_cost(queries):
 
 
 if __name__ == '__main__':
-    try:
-        # first argument is postgresql's connection string
-        pg_url = sys.argv[1]
+    # if args are a connection string and a list of queries
+    if len(sys.argv) >= 3:
+        try:
+            # first argument is postgresql's connection string
+            pg_url = sys.argv[1]
 
-        # all other arguments are files containing single queries or directories
-        # containing those files
-        queries = parse_query_args(sys.argv[2:])
+            # all other arguments are files containing single queries or directories
+            # containing those files
+            queries = parse_query_args(sys.argv[2:])
 
-    # if we don't have the correct amount of arguments, print the help text
-    except(IndexError) as e:
-        print(usage())
+        # if we don't have the correct amount of arguments, print the help text
+        except(IndexError) as e:
+            print(usage())
+            exit(1)
 
-    # execute the queries and collect the execution stats
-    execute_queries(pg_url, queries)
+        # execute the queries and collect the execution stats
+        execute_queries(pg_url, queries)
+    # if args is a file containing the result of queries
+    else:
+        try:
+            #argument must be a pickle file containing the result of queries previously executed
+            queries = pickle.load(open(sys.argv[1], 'rb'))
+        except(IndexError):
+            print(usage())
+            exit(1)
 
     # generate all the relevant graphs
     visualize(queries)
