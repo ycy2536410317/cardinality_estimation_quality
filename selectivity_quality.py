@@ -234,13 +234,16 @@ def plot_q_error_vs_query(queries):
     # compute the q-errors and store them in the dataframe
     cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
 
-    return seaborn.stripplot(
+    plt.figure(figsize=(8, len(queries) * 0.2))
+    plot = seaborn.stripplot(
         y='filename',
         x='q_error',
-        data=cardinalities,
-        hue='join_level',
-        palette=seaborn.color_palette('Blues')
+        data=cardinalities.sort('filename'),
+        palette='muted',
     )
+    plot.set(xscale='symlog')
+    plot.set_title('Q-error of each query')
+    return plot
 
 
 def plot_execution_time_vs_total_cost(queries):
