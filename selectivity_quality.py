@@ -222,7 +222,10 @@ def plot_q_error_vs_join_level(queries):
     # compute the q-errors and store them in the dataframe
     cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
 
-    return seaborn.stripplot('join_level', 'q_error', data=cardinalities)
+    plot = seaborn.boxplot('join_level', 'q_error', data=cardinalities, palette='muted', linewidth=1)
+    plot.set(yscale='symlog')
+    plot.set_title('Plan node q-error vs its join level')
+    return plot
 
 
 def plot_q_error_vs_query(queries):
