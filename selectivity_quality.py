@@ -59,7 +59,9 @@ class QueryResult():
     planning_time = None # in milliseconds
     execution_time = None # in milliseconds
     total_cost = None
-    # dataframe containing the join level and estimated and actual cardinalities
+    max_join_level = None
+    # dataframe containing the node type, join level, estimated and actual
+    # cardinalities
     cardinalities = None
 
     def __init__(self, filename):
@@ -85,10 +87,14 @@ class QueryResult():
         Read the query plan and return the list of cardinalities
         If query_plan is None, use self.query_plan. The argument is used for recursion
         '''
+
+        top_level_node = False
         if query_plan is None:
             query_plan = self.query_plan
+            top_level_node = True
 
         cardinalities = {
+            'node_type': [],
             'join_level': [],
             'estimated': [],
             'actual': []
@@ -99,22 +105,41 @@ class QueryResult():
             for subplan in query_plan['Plans']:
                 subplan_cardinalities = {}
                 subplan_cardinalities = self._parse_cardinalities(subplan)
+
+                cardinalities['node_type'] += subplan_cardinalities['node_type']
                 cardinalities['join_level'] += subplan_cardinalities['join_level']
                 cardinalities['estimated'] += subplan_cardinalities['estimated']
                 cardinalities['actual'] += subplan_cardinalities['actual']
 
             max_join_level = max(cardinalities['join_level'])
+            if top_level_node:
+                self.max_join_level = max_join_level
 
-            cardinalities['join_level'].append(max_join_level + 1)
-            cardinalities['estimated'].append(query_plan['Plan Rows'])
-            cardinalities['actual'].append(query_plan['Actual Rows'])
+            # ignore aggregate nodes, because their selectivity is not
+            # interesting
+            if query_plan['Node Type'] != 'Aggregate':
+                cardinalities['node_type'].append(query_plan['Node Type'])
+                cardinalities['join_level'].append(max_join_level + 1)
+                cardinalities['estimated'].append(query_plan['Plan Rows'])
+                cardinalities['actual'].append(query_plan['Actual Rows'])
         # leaf nodes
         except KeyError as e:
-            cardinalities['join_level'].append(0)
-            cardinalities['estimated'].append(query_plan['Plan Rows'])
-            cardinalities['actual'].append(query_plan['Actual Rows'])
+            # ignore aggregate nodes, because their selectivity is not
+            # interesting
+            if query_plan['Node Type'] != 'Aggregate':
+                cardinalities['node_type'].append(query_plan['Node Type'])
+                cardinalities['join_level'].append(0)
+                cardinalities['estimated'].append(query_plan['Plan Rows'])
+                cardinalities['actual'].append(query_plan['Actual Rows'])
 
         return cardinalities
+
+    def q_error(self):
+        '''
+        Compute the q-error of the top-most join node in the query
+        '''
+        top_plan_node = self.cardinalities.iloc[self.cardinalities.join_level.argmax()]
+        return q_error(top_plan_node.estimated, top_plan_node.actual)
 
 
 def usage():
@@ -184,20 +209,24 @@ def visualize(queries):
     Generate all interesting graphs from the set of queries
     '''
     plot_functions = [
-        plot_q_error_vs_join_level,
+        plot_plan_node_q_error_vs_join_level,
         plot_q_error_vs_query,
+        plot_query_q_error_vs_join_tree_depth,
         plot_execution_time_vs_total_cost,
         plot_actual_vs_estimated,
     ]
 
     with PdfPages(GRAPHS_FILE) as pdf:
         for plot_function in plot_functions:
+            plt.figure()
             plot = plot_function(queries)
             try:
                 pdf.savefig(plot.figure)
             except(AttributeError):
                 pdf.savefig(plot.fig)
+            plt.cla()
             plt.clf()
+            seaborn.set()
 
 
 def q_error(estimated, actual):
@@ -216,7 +245,7 @@ def q_error(estimated, actual):
         return actual / estimated * -1
 
 
-def plot_q_error_vs_join_level(queries):
+def plot_plan_node_q_error_vs_join_level(queries):
     # concatenate single queries cardinalities stats
     cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
     # compute the q-errors and store them in the dataframe
@@ -238,11 +267,11 @@ def plot_q_error_vs_query(queries):
     plot = seaborn.stripplot(
         y='filename',
         x='q_error',
-        data=cardinalities.sort('filename'),
+        data=cardinalities.sort_values(by='filename'),
         palette='muted',
     )
     plot.set(xscale='symlog')
-    plot.set_title('Q-error of each query')
+    plot.set_title('Q-error of each node plan, grouped by query')
     return plot
 
 
@@ -262,6 +291,17 @@ def plot_actual_vs_estimated(queries):
 
     return seaborn.lmplot('estimated', 'actual', data=cardinalities)
 
+
+def plot_query_q_error_vs_join_tree_depth(queries):
+    data = {
+        'q_error': [query.q_error() for query in queries],
+        'join_level': [query.max_join_level for query in queries]
+    }
+    data = pd.DataFrame(data)
+    plot = seaborn.boxplot('join_level', 'q_error', data=data, palette='muted', linewidth=1)
+    plot.set(yscale='symlog')
+    plot.set_title('Query q-error vs its join tree depth')
+    return plot
 
 
 if __name__ == '__main__':
