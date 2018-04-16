@@ -9,6 +9,8 @@ predicates.
 import errno
 import glob
 import json
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
@@ -122,9 +124,14 @@ class QueryResult():
             # interesting
             if query_plan['Node Type'] != 'Aggregate':
                 cardinalities['node_type'].append(query_plan['Node Type'])
-                cardinalities['join_level'].append(max_join_level + 1)
                 cardinalities['estimated'].append(query_plan['Plan Rows'])
                 cardinalities['actual'].append(query_plan['Actual Rows'])
+
+                if query_plan['Node Type'] in ['Hash Join', 'Nested Loop', 'Merge Join']:
+                    cardinalities['join_level'].append(max_join_level + 1)
+                else:
+                    cardinalities['join_level'].append(max_join_level)
+
         # leaf nodes
         except KeyError as e:
             # ignore aggregate nodes, because their selectivity is not
@@ -134,6 +141,7 @@ class QueryResult():
                 cardinalities['join_level'].append(0)
                 cardinalities['estimated'].append(query_plan['Plan Rows'])
                 cardinalities['actual'].append(query_plan['Actual Rows'])
+
 
         return cardinalities
 
@@ -251,6 +259,13 @@ def q_error(estimated, actual):
 def plot_plan_node_q_error_vs_join_level(queries):
     # concatenate single queries cardinalities stats
     cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
+
+    # filter out non-join nodes
+    cardinalities = cardinalities.loc[
+        (cardinalities['node_type'].isin(['Nested Loop', 'Hash Join', 'Merge Join'])) |
+        (cardinalities['join_level'] == 0)
+    ]
+
     # compute the q-errors and store them in the dataframe
     cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
 
