@@ -113,6 +113,9 @@ class QueryResult():
                 cardinalities['estimated'] += subplan_cardinalities['estimated']
                 cardinalities['actual'] += subplan_cardinalities['actual']
 
+                if subplan_cardinalities['actual'] == 1:
+                    print(subplan_cardinalities['node_type'])
+
             max_join_level = max(cardinalities['join_level'])
             if top_level_node:
                 self.max_join_level = max_join_level
@@ -297,7 +300,10 @@ def plot_execution_time_vs_total_cost(queries):
     }
     data = pd.DataFrame(data)
 
-    return seaborn.lmplot('total_cost', 'execution_time', data)
+    plot = seaborn.lmplot('total_cost', 'execution_time', data)
+    plot.set(yscale='log')
+    plot.set(xscale='log')
+    return plot
 
 
 def plot_actual_vs_estimated(queries):
@@ -340,7 +346,7 @@ if __name__ == '__main__':
     # if args is a file containing the result of queries
     else:
         try:
-            #argument must be a pickle file containing the result of queries previously executed
+            # argument must be a pickle file containing the result of queries previously executed
             queries = pickle.load(open(sys.argv[1], 'rb'))
         except(IndexError):
             print(usage())
