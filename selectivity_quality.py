@@ -301,6 +301,18 @@ def plot_q_error_vs_query(queries):
     return plot
 
 
+def plot_query_q_error_vs_join_tree_depth(queries):
+    data = {
+        'q_error': [query.q_error() for query in queries],
+        'join_level': [query.max_join_level for query in queries]
+    }
+    data = pd.DataFrame(data)
+    plot = seaborn.boxplot('join_level', 'q_error', data=data, palette='muted', linewidth=1)
+    plot.set(yscale='symlog')
+    plot.set_title('Query q-error vs its join tree depth')
+    return plot
+
+
 def plot_execution_time_vs_total_cost(queries):
     data = {
         'execution_time': [query.execution_time for query in queries],
@@ -308,13 +320,14 @@ def plot_execution_time_vs_total_cost(queries):
     }
     data = pd.DataFrame(data)
 
-    plot = seaborn.lmplot('total_cost', 'execution_time', data, fit_reg=False)
+    plot = seaborn.regplot('total_cost', 'execution_time', data, fit_reg=False)
     plot.set(
         xscale='log',
         yscale='log',
         xlim=(1, ceil_power_of_ten(data['total_cost'].max())),
         ylim=(1, ceil_power_of_ten(data['execution_time'].max()))
     )
+    plot.set_title('Execution time of a query vs its planned cost')
     return plot
 
 
@@ -327,7 +340,7 @@ def plot_actual_vs_estimated(queries):
         'actual',
         data=cardinalities,
         hue='join_level',
-        palette='GnBu',
+        palette=seaborn.color_palette('Blues'),
         fit_reg=False
     )
     plot.set(
@@ -336,18 +349,7 @@ def plot_actual_vs_estimated(queries):
         xlim=(1, cardinalities['estimated'].max()),
         ylim=(1, cardinalities['actual'].max())
     )
-    return plot
-
-
-def plot_query_q_error_vs_join_tree_depth(queries):
-    data = {
-        'q_error': [query.q_error() for query in queries],
-        'join_level': [query.max_join_level for query in queries]
-    }
-    data = pd.DataFrame(data)
-    plot = seaborn.boxplot('join_level', 'q_error', data=data, palette='muted', linewidth=1)
-    plot.set(yscale='symlog')
-    plot.set_title('Query q-error vs its join tree depth')
+    plot.set_titles('Actual cardinalities vs estimated cardinalities')
     return plot
 
 
