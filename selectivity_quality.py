@@ -11,6 +11,7 @@ import glob
 import json
 import matplotlib
 matplotlib.use('Agg')
+from math import ceil, log
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
@@ -256,6 +257,13 @@ def q_error(estimated, actual):
         return actual / estimated * -1
 
 
+def ceil_power_of_ten(n):
+    '''
+    Compute the closest power of 10 greater than n
+    '''
+    return 10**(ceil(log(n, 10)))
+
+
 def plot_plan_node_q_error_vs_join_level(queries):
     # concatenate single queries cardinalities stats
     cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
@@ -300,17 +308,35 @@ def plot_execution_time_vs_total_cost(queries):
     }
     data = pd.DataFrame(data)
 
-    plot = seaborn.lmplot('total_cost', 'execution_time', data)
-    plot.set(yscale='log')
-    plot.set(xscale='log')
+    plot = seaborn.lmplot('total_cost', 'execution_time', data, fit_reg=False)
+    plot.set(
+        xscale='log',
+        yscale='log',
+        xlim=(1, ceil_power_of_ten(data['total_cost'].max())),
+        ylim=(1, ceil_power_of_ten(data['execution_time'].max()))
+    )
     return plot
 
 
 def plot_actual_vs_estimated(queries):
     # concatenate single queries cardinalities stats
-    cardinalities = pd.concat([query.cardinalities.assign(filename=query.filename) for query in queries], ignore_index=True)
+    cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
 
-    return seaborn.lmplot('estimated', 'actual', data=cardinalities)
+    plot = seaborn.lmplot(
+        'estimated',
+        'actual',
+        data=cardinalities,
+        hue='join_level',
+        palette='GnBu',
+        fit_reg=False
+    )
+    plot.set(
+        xscale='log',
+        yscale='log',
+        xlim=(1, cardinalities['estimated'].max()),
+        ylim=(1, cardinalities['actual'].max())
+    )
+    return plot
 
 
 def plot_query_q_error_vs_join_tree_depth(queries):
