@@ -359,6 +359,8 @@ def plot_actual_vs_estimated(queries):
         ylim=(1, cardinalities['actual'].max())
     )
     plot.set_titles('Actual cardinalities vs estimated cardinalities')
+
+    # show a red line representing the ideal case (where the estimation is perfectly accurate)
     plt.plot([0, 10000000], [0, 10000000], linewidth=1, color='red')
     plt.show()
     return plot
