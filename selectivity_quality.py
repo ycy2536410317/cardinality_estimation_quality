@@ -226,6 +226,7 @@ def visualize(queries):
         plot_query_q_error_vs_join_tree_depth,
         plot_execution_time_vs_total_cost,
         plot_actual_vs_estimated,
+        plot_q_error_distribution_vs_join_level,
     ]
 
     with PdfPages(GRAPHS_FILE) as pdf:
@@ -350,12 +351,13 @@ def plot_actual_vs_estimated(queries):
             rot=.1,
             light=.70
         ),
-        fit_reg=False
+        fit_reg=False,
+        x_jitter=1
     )
     plot.set(
         xscale='log',
         yscale='log',
-        xlim=(1, cardinalities['estimated'].max()),
+        xlim=(0, cardinalities['estimated'].max()),
         ylim=(1, cardinalities['actual'].max())
     )
     plot.set_titles('Actual cardinalities vs estimated cardinalities')
@@ -363,6 +365,20 @@ def plot_actual_vs_estimated(queries):
     # show a red line representing the ideal case (where the estimation is perfectly accurate)
     plt.plot([0, 10000000], [0, 10000000], linewidth=1, color='red')
     plt.show()
+    return plot
+
+
+def plot_q_error_distribution_vs_join_level(queries):
+    # concatenate single queries cardinalities stats
+    cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
+
+    # compute the q-errors and store them in the dataframe
+    cardinalities['q_error'] = cardinalities.apply(lambda row: q_error(row.estimated, row.actual), axis=1)
+
+    plt.figure(figsize=(10, 6))
+    plot = seaborn.stripplot('join_level', 'q_error', data=cardinalities, palette='muted', size=3, jitter=0.4)
+    plot.set(yscale='symlog')
+    plot.set_title('Q-error distribution vs node join level')
     return plot
 
 
