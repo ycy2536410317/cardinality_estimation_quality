@@ -337,13 +337,19 @@ def plot_execution_time_vs_total_cost(queries):
 def plot_actual_vs_estimated(queries):
     # concatenate single queries cardinalities stats
     cardinalities = pd.concat([query.cardinalities for query in queries], ignore_index=True)
+    max_join_level = max([query.max_join_level for query in queries])
 
     plot = seaborn.lmplot(
         'estimated',
         'actual',
         data=cardinalities,
         hue='join_level',
-        palette=seaborn.color_palette('Blues'),
+        palette=seaborn.cubehelix_palette(
+            n_colors=max_join_level+1,
+            start=2.6,
+            rot=.1,
+            light=.70
+        ),
         fit_reg=False
     )
     plot.set(
@@ -353,7 +359,7 @@ def plot_actual_vs_estimated(queries):
         ylim=(1, cardinalities['actual'].max())
     )
     plot.set_titles('Actual cardinalities vs estimated cardinalities')
-    plt.plot([0, 10000000], [0, 10000000], linewidth=1)
+    plt.plot([0, 10000000], [0, 10000000], linewidth=1, color='red')
     plt.show()
     return plot
 
