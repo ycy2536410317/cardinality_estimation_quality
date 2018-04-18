@@ -230,6 +230,9 @@ def visualize(queries):
 
     with PdfPages(GRAPHS_FILE) as pdf:
         for plot_function in plot_functions:
+            # style parameters that will be applied to all plots
+            seaborn.set_context('paper')
+
             plt.figure()
             plot = plot_function(queries)
             try:
@@ -350,6 +353,8 @@ def plot_actual_vs_estimated(queries):
         ylim=(1, cardinalities['actual'].max())
     )
     plot.set_titles('Actual cardinalities vs estimated cardinalities')
+    plt.plot([0, 10000000], [0, 10000000], linewidth=1)
+    plt.show()
     return plot
 
 
