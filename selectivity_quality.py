@@ -25,7 +25,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 
 QUERY_RESULTS_FILE = os.path.join(os.path.dirname(__file__), 'output', 'query_results.pkl')
-GRAPHS_FILE = os.path.join(os.path.dirname(__file__), 'output', 'output.pdf')
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'output')
+GRAPHS_FILE = os.path.join(OUTPUT_DIR, 'output.pdf')
 
 
 class Postgres():
@@ -240,6 +241,14 @@ def visualize(queries):
                 pdf.savefig(plot.figure)
             except(AttributeError):
                 pdf.savefig(plot.fig)
+
+            # also save the figure as png
+            file_name = os.path.join(OUTPUT_DIR, plot_function.__name__ + '.png')
+            try:
+                plot.get_figure().savefig(file_name)
+            except(AttributeError):
+                plot.savefig(file_name)
+
             plt.cla()
             plt.clf()
             seaborn.set()
