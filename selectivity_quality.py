@@ -234,6 +234,8 @@ def visualize(queries):
         for plot_function in plot_functions:
             # style parameters that will be applied to all plots
             seaborn.set_context('paper')
+            seaborn.set_style('white')
+            plt.rc("axes.spines", top=False, right=False)
 
             plt.figure()
             plot = plot_function(queries)
