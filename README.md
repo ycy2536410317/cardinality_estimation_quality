@@ -1,4 +1,4 @@
-# PostgreSQL selectivity quality
+# PostgreSQL cardinality estimation quality
 
 This script generates plots for visualizing how good the cardinality estimates
 produced by postgresql's query optimizer are.  As an error measure, it uses
@@ -17,9 +17,9 @@ dataset](ftp://ftp.fu-berlin.de/pub/misc/movies/database/frozendata/) and the
 Usage:
 ```bash
 pip install -r requirements.txt # install dependencies
-./selectitvity_quality.py # view usage
-./selectivity_quality.py 'host=localhost' /path/to/queries/files # run the queries, save the data collected from the explains, and generate the plots
-./selectivity_quality.py output/query_results.pkl # generate the plots from the saved data
+./cardinality_estimation_quality.py # view usage
+./cardinality_estimation_quality.py 'host=localhost' /path/to/queries/files # run the queries, save the data collected from the explains, and generate the plots
+./cardinality_estimation_quality.py output/query_results.pkl # generate the plots from the saved data
 ```
 
 Ideas and contributions are welcome.
