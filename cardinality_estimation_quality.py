@@ -151,7 +151,7 @@ class QueryResult():
         '''
         Compute the q-error of the top-most join node in the query
         '''
-        top_plan_node = self.cardinalities.iloc[self.cardinalities.join_level.argmax()]
+        top_plan_node = self.cardinalities.iloc[self.cardinalities.join_level.idxmax()]
         return q_error(top_plan_node.estimated, top_plan_node.actual)
 
 
