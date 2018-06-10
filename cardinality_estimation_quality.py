@@ -343,6 +343,7 @@ def plot_execution_time_vs_total_cost(queries):
         ylim=(1, ceil_power_of_ten(data['execution_time'].max()))
     )
     plot.set_title('Execution time of a query vs its planned cost')
+    plot.set(xlabel='Planned cost', ylabel='Execution time (ms)')
     return plot
 
 
@@ -372,6 +373,7 @@ def plot_actual_vs_estimated(queries):
         ylim=(1, cardinalities['actual'].max())
     )
     plot.fig.suptitle('Actual cardinalities vs estimated cardinalities')
+    plot.set(xlabel='Estimated cost', ylabel='Actual cost')
 
     # show a red line representing the ideal case (where the estimation is perfectly accurate)
     plt.plot([0, 10000000], [0, 10000000], linewidth=1, color='red')
@@ -390,6 +392,7 @@ def plot_q_error_distribution_vs_join_level(queries):
     plot = seaborn.stripplot('join_level', 'q_error', data=cardinalities, palette='muted', size=3, jitter=0.4)
     plot.set(yscale='symlog')
     plot.set_title('Q-error distribution vs node join level')
+    plot.set(xlabel='Join level', ylabel='Q-error')
     return plot
 
 
