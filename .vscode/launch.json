@@ -1,0 +1,46 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "row-hiny",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "host=localhost port=5432 user=imdb dbname=imdb",
+                "../postgresql-12.5/job-test1",
+                "../postgresql-12.5/job-test2"
+            ],
+        },
+        {
+            "name": "Python: slow",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "host=localhost port=5432 user=imdb dbname=imdb",
+                "../postgresql-12.5/job",
+                "../postgresql-12.5/job-hint"
+            ],
+        },
+        {
+            "name": "Python: card",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "host=localhost port=5432 user=imdb dbname=imdb",
+                "../postgresql-12.5/job/7a.sql"
+            ],
+        }
+    ]
+}
