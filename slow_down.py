@@ -26,10 +26,10 @@ def run_queries(pg_url, queries):
     for query_name, query_sql in queries.items():
         print(f"Running query: {query_name}")
         start_time = time.time()
-
+        obj = None
         with connection.cursor() as cursor:
             cursor.execute(query_sql)
-
+            obj = cursor.fetchall()
         end_time = time.time()
         elapsed_time = end_time - start_time
         query_results[query_name] = elapsed_time
