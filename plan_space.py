@@ -36,10 +36,10 @@ def run_queries(pg_url, queries, tree_shape='default'):
     for query_name, query_sql in queries.items():
         print(f"Running query: {query_name}")
 
-        sql = "EXPLAIN (ANALYZE, COSTS, VERNOSE, BUFFERS, FORMAT JSON) " + query_sql
+        sql = 'EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON) ' + query_sql
         result = None 
         with connection.cursor() as cursor:
-            cursor.execute(query_sql)
+            cursor.execute(sql)
             result = cursor.fetchall()[0][0][0]
         
         elapsed_time = result['Execution Time']
@@ -84,7 +84,7 @@ def compare_query_times(query_results_dir1, query_results_dir2):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python script.py PG_URL DIR1 DIR2")
+        print("Usage: python script.py PG_URL DIR")
         sys.exit(1)
 
     pg_url = sys.argv[1]
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     ratios2 = compare_query_times(query_results_dir1, query_results_dir3)
     ratios3 = compare_query_times(query_results_dir1, query_results_dir4)
     
-    # compute the median, 95% and max
+    # compute the median, 95% and max and write log to file
     print("default vs left")
     print("median: ", np.median(ratios1))
     print("95%: ", np.percentile(ratios1, 95))
